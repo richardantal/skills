@@ -11,7 +11,14 @@ import com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 buildscript {
     ext {
         opensearch_group = "org.opensearch"
-        opensearch_version = System.getProperty("opensearch.version", "2.18.0-SNAPSHOT")
+        upstream_full_version = "2.18.0.0"
+        build_tools = "2.18.0"
+        ml_version = "2.18.0"
+        sql_version = "2.18.0-SNAPSHOT"
+        opensearch_knn_version = "2.18.0"
+        opensearch_security_version = "2.18.0"
+        job_scheduler_version = "2.18.0-SNAPSHOT"
+        opensearch_version = System.getProperty("opensearch.version", "2.18.0")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         version_tokens = opensearch_version.tokenize('-')
@@ -28,15 +35,29 @@ buildscript {
         kotlin_version = System.getProperty("kotlin.version", "1.8.21")
     }
 
+    String cldrMavenUrl="http://nexus-private.hortonworks.com/nexus/content/groups/public"
+    String gbnUrl="http://nexus-private.hortonworks.com/nexus/content/groups/public"
+
     repositories {
+        maven {
+            url gbnUrl
+            setAllowInsecureProtocol(true);
+            allowInsecureProtocol=true
+        }
+        maven {
+            url cldrMavenUrl
+            setAllowInsecureProtocol(true);
+            allowInsecureProtocol = true;
+        }
         mavenLocal()
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://aws.oss.sonatype.org/content/repositories/releases" }
         maven { url "https://plugins.gradle.org/m2/" }
         mavenCentral()
     }
 
     dependencies {
-        classpath "${opensearch_group}.gradle:build-tools:${opensearch_version}"
+        classpath "${opensearch_group}.gradle:build-tools:${build_tools}"
     }
 }
 
@@ -51,16 +72,30 @@ lombok {
     version = "1.18.34"
 }
 
+String cldrMavenUrl="http://nexus-private.hortonworks.com/nexus/content/groups/public"
+String gbnUrl="http://nexus-private.hortonworks.com/nexus/content/groups/public"
+
 repositories {
+    maven {
+        url gbnUrl
+        setAllowInsecureProtocol(true);
+        allowInsecureProtocol=true
+    }
+    maven {
+        url cldrMavenUrl
+        setAllowInsecureProtocol(true);
+        allowInsecureProtocol = true;
+    }
     mavenLocal()
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    maven { url "https://aws.oss.sonatype.org/content/repositories/releases" }
     maven { url "https://plugins.gradle.org/m2/" }
     mavenCentral()
 }
 
 allprojects {
     group = opensearch_group
-    version = "${opensearch_build}"
+    version = "${opensearch_version}"
 }
 
 targetCompatibility = JavaVersion.VERSION_11
@@ -95,19 +130,19 @@ configurations {
 
 task addJarsToClasspath(type: Copy) {
     from(fileTree(dir: sqlJarDirectory)) {
-        include "opensearch-sql-${opensearch_build}.jar"
-        include "ppl-${opensearch_build}.jar"
-        include "protocol-${opensearch_build}.jar"
+        include "opensearch-sql-${sql_version}.jar"
+        include "ppl-${sql_version}.jar"
+        include "protocol-${sql_version}.jar"
     }
     into("$buildDir/classes")
 
     from(fileTree(dir: jsJarDirectory)) {
-        include "opensearch-job-scheduler-${opensearch_build}.jar"
+        include "opensearch-job-scheduler-${job_scheduler_version}.jar"
     }
     into("$buildDir/classes")
 
     from(fileTree(dir: adJarDirectory)) {
-        include "opensearch-anomaly-detection-${opensearch_build}.jar"
+        include "opensearch-anomaly-detection-${upstream_full_version}.jar"
     }
     into("$buildDir/classes")
 }
@@ -122,24 +157,24 @@ dependencies {
     compileOnly group: 'org.apache.commons', name: 'commons-text', version: '1.11.0'
 
     // Plugin dependencies
-    compileOnly group: 'org.opensearch', name:'opensearch-ml-client', version: "${opensearch_build}"
-    implementation fileTree(dir: jsJarDirectory, include: ["opensearch-job-scheduler-${opensearch_build}.jar"])
-    implementation fileTree(dir: adJarDirectory, include: ["opensearch-anomaly-detection-${opensearch_build}.jar"])
-    implementation fileTree(dir: sqlJarDirectory, include: ["opensearch-sql-${opensearch_build}.jar", "ppl-${opensearch_build}.jar", "protocol-${opensearch_build}.jar"])
-    compileOnly "org.opensearch:common-utils:${opensearch_build}"
+    compileOnly group: 'org.opensearch', name:'opensearch-ml-client', version: "${ml_version}"
+    implementation fileTree(dir: jsJarDirectory, include: ["opensearch-job-scheduler-${job_scheduler_version}.jar"])
+    implementation fileTree(dir: adJarDirectory, include: ["opensearch-anomaly-detection-${upstream_full_version}.jar"])
+    implementation fileTree(dir: sqlJarDirectory, include: ["opensearch-sql-${sql_version}.jar", "ppl-${sql_version}.jar", "protocol-${sql_version}.jar"])
+    compileOnly "org.opensearch:common-utils:${opensearch_version}"
     compileOnly "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
-    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
+    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${upstream_full_version}"
 
 
     // ZipArchive dependencies used for integration tests
-    zipArchive group: 'org.opensearch.plugin', name:'opensearch-ml-plugin', version: "${opensearch_build}"
-    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
-    zipArchive group: 'org.opensearch.plugin', name:'opensearch-anomaly-detection', version: "${opensearch_build}"
-    zipArchive group: 'org.opensearch.plugin', name:'opensearch-sql-plugin', version: "${opensearch_build}"
-    zipArchive group: 'org.opensearch.plugin', name:'opensearch-knn', version: "${opensearch_build}"
-    zipArchive group: 'org.opensearch.plugin', name:'neural-search', version: "${opensearch_build}"
-    zipArchive group: 'org.opensearch.plugin', name:'alerting', version: "${opensearch_build}"
-    secureIntegTestPluginArchive group: 'org.opensearch.plugin', name:'opensearch-security', version: "${opensearch_build}"
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-ml-plugin', version: "${ml_version}"
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${job_scheduler_version}"
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-anomaly-detection', version: "${upstream_full_version}"
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-sql-plugin', version: "${sql_version}"
+    zipArchive group: 'org.opensearch', name:'opensearch-knn', version: "${opensearch_knn_version}"
+    zipArchive group: 'org.opensearch.plugin', name:'neural-search', version: "${opensearch_version}"
+    zipArchive group: 'org.opensearch.plugin', name:'alerting', version: "${upstream_full_version}"
+    secureIntegTestPluginArchive group: 'org.opensearch.plugin', name:'opensearch-security', version: "${opensearch_security_version}"
 
     // Test dependencies
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
